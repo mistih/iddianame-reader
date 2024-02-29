@@ -139,9 +139,6 @@ class Parser:
                     continue
 
     def musteki(self, content: str):
-        # person_content = "MUSTAFA YETİM, ASLAN Oğlu MERYEM'den olma, 21/09/1947 doğumlu, Dervişpaşa Mah. Namık Kemal Cad. No:69 İslahiye/ GAZİANTEP ikamet eder."
-        # not_person_content = "CEYHAN MİLLİ EĞİTİM MÜDÜRLÜĞÜ, Burhaniye Mah. İnönü Blv. Kaymakamlık Binası Yanı,01960 Ceyhan/Adana Ceyhan/ ADANA"
-
         person_keys = ["oğlu", "Oğlu", "OĞLU", "kızı", "Kızı", "KIZI"]
         isPerson = False
         for anahtar in person_keys:
