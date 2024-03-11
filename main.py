@@ -10,20 +10,8 @@ import logging
 
 logging.basicConfig(filename="tests.log", level=logging.INFO, encoding="utf-8", filemode="w")
 
-musteki = Musteki(
-    ad="Ahmet", soyad="Yılmaz", dogum_tarihi=1980, sevk_maddesi="", suc_tarihi=0, dogum_yeri="Ankara", cinsiyet=1, medeni_durum=1,
-    egitim_durumu="Lisans", meslek="Doktor", adres="Ankara", tc_kimlik_no=12345678901, 
-    anne_adi="Fatma", baba_adi="Mehmet"
-)
-
-magdur = Magdur(
-    ad="Veli", soyad="Yılmaz", dogum_tarihi=1980, sevk_maddesi="", suc_tarihi=0, dogum_yeri="Ankara", cinsiyet=1, medeni_durum=1, 
-    egitim_durumu="Lisans", meslek="Doktor", adres="Ankara", tc_kimlik_no=12345678901, 
-    anne_adi="Fatma", baba_adi="Mehmet"
-)
-
-supheli = Supheli(
-    ad="Ali", soyad="Kılıç", dogum_tarihi=1980, dogum_yeri="Ankara", cinsiyet=1, medeni_durum=1, 
-    egitim_durumu="Lisans", meslek="Doktor", adres="Ankara", tc_kimlik_no=12345678901, 
-    anne_adi="Fatma", baba_adi="Mehmet", musteki=musteki, magdur=magdur
-)
+parser = Parser("tests/2.udf")
+anahtarlar = parser.anahtarlar
+open("result.json", "w", encoding="utf-8").write(json.dumps(anahtarlar, indent=4, ensure_ascii=False))
+for musteki in anahtarlar["ŞÜPHELİ"]:
+    musteki = parser.musteki(musteki)

@@ -131,3 +131,4 @@ tests/
 
 # test_scripts
 test_scripts/
+result.json

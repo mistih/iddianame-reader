@@ -1,3 +1,4 @@
+
 import zipfile
 import os
 import shutil
@@ -14,18 +15,24 @@ from app.sahis.supheli import Supheli
 
 class Parser:
     def __init__(self, path: str):
+        # check if the file exists
         self.path = path
-        self.anahtarlar = {
-            "DAVACI": [],
-            "MÜŞTEKİ": [],
-            "ŞÜPHELİ": [],
-            "SUÇ": [],
-            "SUÇ TARİHİ": [],
-            "SUÇ TARİHİ VE YERİ": [],
-            "ŞİKAYET TARİHİ": [],
-            "SEVK MADDESİ": [],
-            "DELİLLER": [],
-        }
+        if not os.path.exists(self.path):
+            raise ValueError("Dosya bulunamadı.")
+        
+        # check if the file is a zip file
+        if not zipfile.is_zipfile(self.path):
+            raise ValueError("Geçersiz dosya biçimi.")
+        
+        # check if the file is a .udf file
+        if not self.path.endswith(".udf"):
+            raise ValueError("Geçersiz dosya biçimi.")
+        
+        # read the json/anahtarlar.json
+        self.anahtarlar = json.load(open("app/json/anahtarlar.json", "r", encoding="utf-8"))
+
+        # read json/anahtar_info.json
+        self.anahtar_info = json.load(open("app/json/anahtar_info.json", "r", encoding="utf-8"))
 
         self.content = self.read()
         self.data = self.parse()
@@ -36,6 +43,9 @@ class Parser:
         udfFile.close()
         return content
     
+    def editLine(self, line: str, variation: str):
+        return line.replace(variation, "").split("\n")[0].strip().replace("\n", " ").lstrip().rstrip()
+  
     def parse(self):
         content = self.content
         try:
@@ -45,28 +55,48 @@ class Parser:
             content = re.sub(r'\s+', ' ', content)
             content = content.replace("~~", "\n")
             content = content.replace('"', "'")
+            first_part = content
 
-            for anahtar in self.anahtarlar:
-                if anahtar in content:
-                    variations = [anahtar + " : ", anahtar + ": ", anahtar + " :"]
-                    for variation in variations:
-                        start = 0  # İlk arama noktasını belirle
-                        while variation in content[start:]:  # Varyasyon içeriğin içinde olduğu sürece
-                            index = content[start:].find(variation) + start  # Varyasyonun başlangıç indeksini bul
+            variatons = ["SORUŞTURMA", "Soruşturma", "soruşturma", "İNCELENDİ", "İncelendi"]
+            for variation in variatons:
+                if variation in content:
+                    first_part = content.split(variation)[0]
+           
+            lastAnahtar = None
+            lastVariation = None
+
+            for index, line in enumerate(first_part.split("\n")):
+                hasVariation = False
+                isInList = False
+                
+                # fix
+                for anahtar in self.anahtarlar:
+                    if anahtar in line:
+                        lastAnahtar = anahtar
+                        isInList = True
+                        variations = [anahtar + " : ", anahtar + ": ", anahtar + " :"]
+                        for variation in variations:
+                            index = line.find(variation)
                             if index != -1:
-                                # Varyasyonun sonrasındaki veriyi al ve işle
-                                data = content[index + len(variation):].split("\n")[0].strip().replace("\n", " ").lstrip().rstrip()
-                                if data not in self.anahtarlar[anahtar]:
-                                    self.anahtarlar[anahtar].append(data)
-                                start = index + len(variation)  # Sonraki arama için başlangıç noktasını güncelle
-                            else:
-                                break  # Eğer varyasyon bulunamazsa döngüyü kır
+                                hasVariation = True
+                                lastVariation = variation
+                                data = self.editLine(line, variation)
+                            
+                        if hasVariation:
+                            data = self.editLine(line, lastVariation)
+                            if len(data) > 0:
+                                self.anahtarlar[anahtar].append(data)
 
-
+                if lastAnahtar is not None and isInList is False:
+                    data = self.editLine(line, lastVariation)
+                    if len(data) > 0:
+                        self.anahtarlar[lastAnahtar].append(data)
+                        
             return content
         except:
-            raise ValueError("Veri okunamadı.")
+            raise ValueError("Iddianame içeriğini okurken bir hata oluştu. Lütfen dosyanın içeriğini kontrol edin.")
 
+        
     def tarih_bul(self, content: list):
         formats = {
             "dd.mm.yyyy": {"pattern": r'\d{2}.\d{2}.\d{4}', "min_year": None, "max_year": None},
@@ -111,8 +141,6 @@ class Parser:
                     if len(date) != 3 and len(date[0]) == 4:
                         isEdited = True
                         date = [1, 1, date[0]]
-                        
-                    print("temiz date", date)
 
                     day = int(date[0]) if int(date[0]) < 32 else 1;isEdited = True
                     month = int(date[1]) if int(date[1]) < 13 else 1;isEdited = True
@@ -138,14 +166,41 @@ class Parser:
                 else:
                     continue
 
+    def string_temizle(self, string):
+        for index, harf in enumerate(string):
+            if harf.isalpha() or harf.isspace():
+                return string[index:].lstrip().rstrip()
+        return ""
+    
+    def full_upper_turkish(self, string):
+        if "i" in string:
+            string = string.replace("i", "İ")
+        if "ç" in string:
+            string = string.replace("ç", "Ç")
+        if "ş" in string:
+            string = string.replace("ş", "Ş")
+        if "ğ" in string:
+            string = string.replace("ğ", "Ğ")
+        if "ü" in string:
+            string = string.replace("ü", "Ü")
+        if "ö" in string:
+            string = string.replace("ö", "Ö")
+        if "ı" in string:
+            string = string.replace("ı", "I")
+
+        string = string.upper() 
+        return string
+
     def musteki(self, content: str):
+        content = re.sub(r"\b\d+-", "", content)
+        content = self.string_temizle(content)
+
         person_keys = ["oğlu", "Oğlu", "OĞLU", "kızı", "Kızı", "KIZI"]
         isPerson = False
         for anahtar in person_keys:
             if anahtar in content:
                 isPerson = True
                 break
-        
         tam_adi = content.split(",")[0]
         ad = None
         soyad = None
@@ -154,9 +209,14 @@ class Parser:
         adres = None
 
         if isPerson:
+            anneKeys = ["'den Olma", "'den olma", "'DEN OLMA", "'DEN OLMA", "'dan Olma", "'dan olma", "'DAN OLMA", "'DAN OLMA"]
+            anneKey = "'den olma"
+            for key in anneKeys:
+                if key in content:
+                    anneKey = key
             dogum_tarihi = self.tarih_bul([content])
-            anne_adi = content.split("'den olma")[0].split(" ")[-1].strip()
-            baba_adi = content.split(",")[1].split(" ")[1].strip()
+            anne_adi = self.full_upper_turkish(content.split(anneKey)[0].split(" ")[-1].strip())
+            baba_adi = self.full_upper_turkish(content.split(",")[1].split(" ")[1].strip())
             ad, soyad = tam_adi.split(" ")[0], tam_adi.split(" ")[1]
 
         else:
@@ -166,10 +226,3 @@ class Parser:
         print("soyad", soyad)
         print("anne_adi", anne_adi)
         print("baba_adi", baba_adi)
-
-        
-
-
-        
-
-        

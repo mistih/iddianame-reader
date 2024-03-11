@@ -1,0 +1,117 @@
+{
+    "DAVACI": {
+        "isMultiple": false,
+        "class": "Magdur",
+        "fields": ["ad", "soyad", "dogum_tarihi", "dogum_yeri", "cinsiyet", "medeni_durum", "egitim_durumu", "meslek", "adres", "tc_kimlik_no", "anne_adi", "baba_adi"]
+    },
+    "DAVACILAR": {
+        "isMultiple": true,
+        "class": "Magdur",
+        "fields": ["ad", "soyad", "dogum_tarihi", "dogum_yeri", "cinsiyet", "medeni_durum", "egitim_durumu", "meslek", "adres", "tc_kimlik_no", "anne_adi", "baba_adi"]
+    },
+    "MAKTUL": {
+        "isMultiple": false,
+        "class": "Magdur",
+        "fields": ["ad", "soyad", "dogum_tarihi", "dogum_yeri", "cinsiyet", "medeni_durum", "egitim_durumu", "meslek", "adres", "tc_kimlik_no", "anne_adi", "baba_adi"]
+    },
+    "MÜTEVEFFA": {
+        "isMultiple": false,
+        "class": "Magdur",
+        "fields": ["ad", "soyad", "dogum_tarihi", "dogum_yeri", "cinsiyet", "medeni_durum", "egitim_durumu", "meslek", "adres", "tc_kimlik_no", "anne_adi", "baba_adi"]
+    },
+    "MAĞDUR": {
+        "isMultiple": false,
+        "class": "Magdur",
+        "fields": ["ad", "soyad", "dogum_tarihi", "dogum_yeri", "cinsiyet", "medeni_durum", "egitim_durumu", "meslek", "adres", "tc_kimlik_no", "anne_adi", "baba_adi"]
+    },
+    "MAĞDURLAR": {
+        "isMultiple": true,
+        "class": "Magdur",
+        "fields": ["ad", "soyad", "dogum_tarihi", "dogum_yeri", "cinsiyet", "medeni_durum", "egitim_durumu", "meslek", "adres", "tc_kimlik_no", "anne_adi", "baba_adi"]
+    },
+    "VEKİLİ": {
+        "isMultiple": false,
+        "class": "str",
+        "fields": []
+    },
+    "MÜŞTEKİ": {
+        "isMultiple": false,
+        "class": "Musteki",
+        "fields": ["ad", "soyad", "dogum_tarihi", "sevk_maddesi", "suc_tarihi", "dogum_yeri", "cinsiyet", "medeni_durum", "egitim_durumu", "meslek", "adres", "tc_kimlik_no", "anne_adi", "baba_adi", "sahis_mi"]
+    },
+    "MÜŞTEKİLER": {
+        "isMultiple": true,
+        "class": "Musteki",
+        "fields": ["ad", "soyad", "dogum_tarihi", "sevk_maddesi", "suc_tarihi", "dogum_yeri", "cinsiyet", "medeni_durum", "egitim_durumu", "meslek", "adres", "tc_kimlik_no", "anne_adi", "baba_adi", "sahis_mi"]
+    },
+    "ŞÜPHELİ": {
+        "isMultiple": false,
+        "class": "Supheli",
+        "fields": ["ad", "soyad", "dogum_tarihi", "dogum_yeri", "cinsiyet", "medeni_durum", "egitim_durumu", "meslek", "adres", "tc_kimlik_no", "anne_adi", "baba_adi"]
+    },
+    "ŞÜPHELİLER": {
+        "isMultiple": true,
+        "class": "Supheli",
+        "fields": ["ad", "soyad", "dogum_tarihi", "dogum_yeri", "cinsiyet", "medeni_durum", "egitim_durumu", "meslek", "adres", "tc_kimlik_no", "anne_adi", "baba_adi"]
+    },
+    "MÜDAFİİ": {
+        "isMultiple": false,
+        "class": "str",
+        "fields": []
+    },
+    "SUÇ": {
+        "isMultiple": false,
+        "class": "str",
+        "fields": []
+    },
+    "SUÇ TARİHİ": {
+        "isMultiple": false,
+        "class": "str",
+        "fields": []
+    },
+    "SUÇ TARİHİ VE YERİ": {
+        "isMultiple": false,
+        "class": "str",
+        "fields": []
+    },
+    "GÖZALTI TARİHİ": {
+        "isMultiple": false,
+        "class": "str",
+        "fields": []
+    },
+    "SALIVERİLME TARİHİ": {
+        "isMultiple": false,
+        "class": "str",
+        "fields": []
+    },
+    "TUTUKLAMA TARİHİ": {
+        "isMultiple": false,
+        "class": "str",
+        "fields": []
+    },
+    "TAHLİYE TARİHİ": {
+        "isMultiple": false,
+        "class": "str",
+        "fields": []
+    },
+    "YAKALAMA KARAR TARİHİ": {
+        "isMultiple": false,
+        "class": "str",
+        "fields": []
+    },
+    "ŞİKAYET TARİHİ": {
+        "isMultiple": false,
+        "class": "str",
+        "fields": []
+    },
+    "SEVK MADDESİ": {
+        "isMultiple": false,
+        "class": "str",
+        "fields": []
+    },
+    "DELİLLER": {
+        "isMultiple": true,
+        "class": "str",
+        "fields": []
+    }
+}
