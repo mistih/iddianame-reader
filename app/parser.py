@@ -61,14 +61,32 @@ class Parser:
             for variation in variatons:
                 if variation in content:
                     first_part = content.split(variation)[0]
+                    break
            
             lastAnahtar = None
+            lastFollowKey = None
             lastVariation = None
+            follow_keys = ["MÜŞTEKİ", "ŞÜPHELİ", "MAĞDUR", "DAVACI", "MÜŞTEKİLER", "ŞÜPHELİLER", "MAĞDURLAR", "DAVACILAR"]
 
             for index, line in enumerate(first_part.split("\n")):
                 hasVariation = False
                 isInList = False
-                
+                follow = False
+
+                if re.search(r"\b\d+-", line[0:5]):
+                    data = self.editLine(line, lastVariation)
+                    if len(data) > 0:
+                        if self.anahtarlar["ŞÜPHELİLER"] != [] and lastFollowKey == "ŞÜPHELİ":
+                            lastFollowKey = "ŞÜPHELİLER"
+                        if self.anahtarlar["MÜŞTEKİLER"] != [] and lastFollowKey == "MÜŞTEKİ":
+                            lastFollowKey = "MÜŞTEKİLER"
+                        if self.anahtarlar["MAĞDURLAR"] != [] and lastFollowKey == "MAĞDUR":
+                            lastFollowKey = "MAĞDURLAR"
+                        if self.anahtarlar["DAVACILAR"] != [] and lastFollowKey == "DAVACI":
+                            lastFollowKey = "DAVACILAR"
+                        self.anahtarlar[lastFollowKey].append(data)
+                    continue
+
                 # fix
                 for anahtar in self.anahtarlar:
                     if anahtar in line:
@@ -78,6 +96,8 @@ class Parser:
                         for variation in variations:
                             index = line.find(variation)
                             if index != -1:
+                                if anahtar in follow_keys:
+                                    lastFollowKey = anahtar
                                 hasVariation = True
                                 lastVariation = variation
                                 data = self.editLine(line, variation)
@@ -85,13 +105,29 @@ class Parser:
                         if hasVariation:
                             data = self.editLine(line, lastVariation)
                             if len(data) > 0:
+                                if self.anahtarlar["ŞÜPHELİLER"] != [] and anahtar == "ŞÜPHELİ":
+                                    anahtar = "ŞÜPHELİLER"
+                                if self.anahtarlar["MÜŞTEKİLER"] != [] and anahtar == "MÜŞTEKİ":
+                                    anahtar = "MÜŞTEKİLER"
+                                if self.anahtarlar["MAĞDURLAR"] != [] and anahtar == "MAĞDUR":
+                                    anahtar = "MAĞDURLAR"
+                                if self.anahtarlar["DAVACILAR"] != [] and anahtar == "DAVACI":
+                                    anahtar = "DAVACILAR"
                                 self.anahtarlar[anahtar].append(data)
 
                 if lastAnahtar is not None and isInList is False:
                     data = self.editLine(line, lastVariation)
                     if len(data) > 0:
+                        if self.anahtarlar["ŞÜPHELİLER"] != [] and lastAnahtar == "ŞÜPHELİ":
+                            lastAnahtar = "ŞÜPHELİLER"
+                        if self.anahtarlar["MÜŞTEKİLER"] != [] and lastAnahtar == "MÜŞTEKİ":
+                            lastAnahtar = "MÜŞTEKİLER"
+                        if self.anahtarlar["MAĞDURLAR"] != [] and lastAnahtar == "MAĞDUR":
+                            lastAnahtar = "MAĞDURLAR"
+                        if self.anahtarlar["DAVACILAR"] != [] and lastAnahtar == "DAVACI":
+                            lastAnahtar = "DAVACILAR"
                         self.anahtarlar[lastAnahtar].append(data)
-                        
+     
             return content
         except:
             raise ValueError("Iddianame içeriğini okurken bir hata oluştu. Lütfen dosyanın içeriğini kontrol edin.")
@@ -191,7 +227,34 @@ class Parser:
         string = string.upper() 
         return string
 
-    def musteki(self, content: str):
+    def clean_anahtarlar(self):
+        mustekiler = False
+        magdurlar = False
+        supheliler = False
+        davacilar = False
+
+        if len(self.anahtarlar["MÜŞTEKİLER"]) > 0:
+            mustekiler = True
+        
+        if len(self.anahtarlar["ŞÜPHELİ"]) > 1:
+            supheliler = True
+
+        if len(self.anahtarlar["MAĞDUR"]) > 1:
+            magdurlar = True
+            
+        if len(self.anahtarlar["DAVACI"]) > 1:
+            davacilar = True
+
+        anahtarlar = self.anahtarlar.copy()
+        
+        for anahtar in list(anahtarlar.keys()):
+            if anahtarlar[anahtar] == []:
+                anahtarlar.pop(anahtar)
+        
+        self.anahtarlar = anahtarlar
+        return {"mustekiler": mustekiler, "magdurlar": magdurlar, "supheliler": supheliler, "davacilar": davacilar}
+
+    def sahis(self, content: str):
         content = re.sub(r"\b\d+-", "", content)
         content = self.string_temizle(content)
 

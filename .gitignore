@@ -131,4 +131,6 @@ tests/
 
 # test_scripts
 test_scripts/
+yedek/
 result.json
+result_parsed.json
