@@ -132,5 +132,7 @@ tests/
 # test_scripts
 test_scripts/
 yedek/
+uploads/
 result.json
 result_parsed.json
+index.html

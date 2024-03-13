@@ -1,4 +1,5 @@
 
+import hashlib
 import zipfile
 import os
 import shutil
@@ -23,10 +24,7 @@ class Parser:
         # check if the file is a zip file
         if not zipfile.is_zipfile(self.path):
             raise ValueError("Geçersiz dosya biçimi.")
-        
-        # check if the file is a .udf file
-        if not self.path.endswith(".udf"):
-            raise ValueError("Geçersiz dosya biçimi.")
+
         
         # read the json/anahtarlar.json
         self.anahtarlar = json.load(open("app/json/anahtarlar.json", "r", encoding="utf-8"))
@@ -66,7 +64,24 @@ class Parser:
             lastAnahtar = None
             lastFollowKey = None
             lastVariation = None
+            lastSüpheli = None
+            lastMusteki = None
+
             follow_keys = ["MÜŞTEKİ", "ŞÜPHELİ", "MAĞDUR", "DAVACI", "MÜŞTEKİLER", "ŞÜPHELİLER", "MAĞDURLAR", "DAVACILAR"]
+            
+            sequential_keys = [
+                "SUÇ",
+                "SUÇ TARİHİ",
+                "SUÇ TARİHİ VE YERİ",
+                "GÖZALTI TARİHİ",
+                "SALIVERİLME TARİHİ",
+                "TUTUKLAMA TARİHİ",
+                "TAHLİYE TARİHİ",
+                "YAKALAMA KARAR TARİHİ",
+                "ŞİKAYET TARİHİ",
+                "SEVK MADDESİ",
+                "SEVK MADDELERİ"
+            ]
 
             for index, line in enumerate(first_part.split("\n")):
                 hasVariation = False
@@ -84,7 +99,16 @@ class Parser:
                             lastFollowKey = "MAĞDURLAR"
                         if self.anahtarlar["DAVACILAR"] != [] and lastFollowKey == "DAVACI":
                             lastFollowKey = "DAVACILAR"
-                        self.anahtarlar[lastFollowKey].append(data)
+
+                        if lastFollowKey == "ŞÜPHELİ" or lastFollowKey == "ŞÜPHELİLER":
+                            lastSupheli = data
+                            sahis = self.sahis(data)
+                            data = {"hash": self.get_hash(lastSupheli), "data": data, "ad": sahis["ad"], "soyad": sahis["soyad"], "tamAdi":sahis["tamAdi"], "dogumTarihi": sahis["dogumTarihi"]["timestamp"], "anneAdi": sahis["anneAdi"], "babaAdi": sahis["babaAdi"], "isPerson":sahis["isPerson"]}
+
+                        if lastFollowKey in sequential_keys:
+                            self.anahtarlar[lastFollowKey][self.get_hash(lastSupheli)] = data
+                        else:
+                            self.anahtarlar[lastFollowKey].append(data)
                     continue
 
                 # fix
@@ -113,7 +137,16 @@ class Parser:
                                     anahtar = "MAĞDURLAR"
                                 if self.anahtarlar["DAVACILAR"] != [] and anahtar == "DAVACI":
                                     anahtar = "DAVACILAR"
-                                self.anahtarlar[anahtar].append(data)
+
+                                if lastAnahtar == "ŞÜPHELİ" or lastAnahtar == "ŞÜPHELİLER":
+                                    lastSupheli = data
+                                    sahis = self.sahis(data)
+                                    data = {"hash": self.get_hash(lastSupheli), "data": data, "ad": sahis["ad"], "soyad": sahis["soyad"], "tamAdi":sahis["tamAdi"], "dogumTarihi": sahis["dogumTarihi"]["timestamp"], "anneAdi": sahis["anneAdi"], "babaAdi": sahis["babaAdi"], "isPerson":sahis["isPerson"]}
+
+                                if anahtar in sequential_keys:
+                                    self.anahtarlar[anahtar][self.get_hash(lastSupheli)] = data
+                                else:
+                                    self.anahtarlar[anahtar].append(data)
 
                 if lastAnahtar is not None and isInList is False:
                     data = self.editLine(line, lastVariation)
@@ -126,7 +159,16 @@ class Parser:
                             lastAnahtar = "MAĞDURLAR"
                         if self.anahtarlar["DAVACILAR"] != [] and lastAnahtar == "DAVACI":
                             lastAnahtar = "DAVACILAR"
-                        self.anahtarlar[lastAnahtar].append(data)
+
+                        if lastAnahtar == "ŞÜPHELİ" or lastAnahtar == "ŞÜPHELİLER":
+                            lastSupheli = data
+                            sahis = self.sahis(data)
+                            data = {"hash": self.get_hash(lastSupheli), "data": data, "ad": sahis["ad"], "soyad": sahis["soyad"], "tamAdi":sahis["tamAdi"], "dogumTarihi": sahis["dogumTarihi"]["timestamp"], "anneAdi": sahis["anneAdi"], "babaAdi": sahis["babaAdi"], "isPerson":sahis["isPerson"]}
+
+                        if lastAnahtar in sequential_keys:
+                            self.anahtarlar[lastAnahtar][self.get_hash(lastSupheli)] = data
+                        else:
+                            self.anahtarlar[lastAnahtar].append(data)
      
             return content
         except:
@@ -254,6 +296,15 @@ class Parser:
         self.anahtarlar = anahtarlar
         return {"mustekiler": mustekiler, "magdurlar": magdurlar, "supheliler": supheliler, "davacilar": davacilar}
 
+    def get_hash(self, content: str):
+        sahis = self.sahis(content)
+        sha1 = hashlib.sha1()
+        sha1.update(sahis["tamAdi"].encode("utf-8"))
+        sha1.update(str(sahis["dogumTarihi"]["datetime"]).encode("utf-8"))
+        sha1.update(str(sahis["isPerson"]).encode("utf-8"))
+        return sha1.hexdigest()
+
+
     def sahis(self, content: str):
         content = re.sub(r"\b\d+-", "", content)
         content = self.string_temizle(content)
@@ -264,12 +315,14 @@ class Parser:
             if anahtar in content:
                 isPerson = True
                 break
+            
         tam_adi = content.split(",")[0]
         ad = None
         soyad = None
         anne_adi = None
         baba_adi = None
         adres = None
+        dogum_tarihi = None
 
         if isPerson:
             anneKeys = ["'den Olma", "'den olma", "'DEN OLMA", "'DEN OLMA", "'dan Olma", "'dan olma", "'DAN OLMA", "'DAN OLMA"]
@@ -285,7 +338,13 @@ class Parser:
         else:
             adres = content.replace(tam_adi, "").strip()[1:]
 
-        print("ad", ad)
-        print("soyad", soyad)
-        print("anne_adi", anne_adi)
-        print("baba_adi", baba_adi)
+        return {
+            "ad": ad,
+            "soyad": soyad,
+            "tamAdi": tam_adi,
+            "dogumTarihi": dogum_tarihi,
+            "anneAdi": anne_adi,
+            "babaAdi": baba_adi,
+            "adres": adres,
+            "isPerson": isPerson
+        }
