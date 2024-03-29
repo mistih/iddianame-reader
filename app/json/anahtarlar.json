@@ -1,4 +1,9 @@
 {
+    "SUÇTAN ZARAR GÖREN": [],
+    "SUÇTAN ZARAR GÖRENLER": [],
+    "TUTUKLU BULUNDUĞU YER": [],
+    "İHBAR EDEN": [],
+    "İHBAR EDENLER": [],
     "DAVACI": [],
     "DAVACILAR": [],
     "MAKTUL": [],
@@ -9,6 +14,13 @@
     "MÜŞTEKİ": [],
     "MÜŞTEKİLER": [],
     "ŞÜPHELİ": [],
+    "S.S.ÇOCUK": [],
+    "S.S.ÇOCUKLAR": [],
+    "SUÇA SÜRÜKLENEN ÇOCUKLAR": [],
+    "SUÇA SÜRÜKLENEN ÇOCUK": [],
+    "SSÇ": [],
+    "SSÇLER": [],
+    "SSÇ'LER": [],
     "ŞÜPHELİLER": [],
     "MÜDAFİİ": [],
     "SUÇ": {},
@@ -19,8 +31,11 @@
     "TUTUKLAMA TARİHİ": {},
     "TAHLİYE TARİHİ": {},
     "YAKALAMA KARAR TARİHİ": {},
-    "ŞİKAYET TARİHİ": [],
+    "ŞİKAYET TARİHİ": {},
     "SEVK MADDESİ": {},
     "SEVK MADDELERİ": {},
-    "DELİLLER": []
+    "DELİLLER": [],
+    "HATALAR": [],
+    "GEÇİRME TARİHİ": [],
+    "SON GÖZDEN GEÇİRME TARİHİ": []
 }

@@ -38,5 +38,54 @@
             "6136 S.K",
             "6136 Sayılı Kanun"
         ]
+    },
+    {
+        "NO": 213,
+        "ADI": "VERGİ USUL KANUNU",
+        "TÜRÜ": "KANUN",
+        "YILI": 1961,
+        "ETIKETLER": [
+            "213",
+            "213 SK",
+            "213 S.K",
+            "213 Sayılı Kanun",
+            "V.U.K.",
+            "VUK",
+            "VERGİ USUL KANUNU MADDE 213",
+            "213 Sayılı VUK",
+            "213 Sayılı Vergi Usul Kanunu",
+            "213 Sayılı V.U.K",
+            "213 Sayılı V.U.K'nın",
+            "213 Sayılı V.U.K'nun",
+            "213 Sayılı Vergi Usul Kanunu'nun",
+            "213 Sayılı VUK'nın",
+            "213 Sayılı VUK'nun",
+            "213 Sayılı VUK'nın",
+            "213 Sayılı VUK'nun"
+        ]
+    },
+    {
+        "NO": 5464,
+        "ADI": "BANKA KARTLARI VE KREDİ KARTLARI KANUNU",
+        "TÜRÜ": "KANUN",
+        "YILI": 2006,
+        "ETIKETLER": [
+            "5464",
+            "5464 SK",
+            "5464 S.K",
+            "5464 Sayılı Kanun",
+            "BKVKKK",
+            "B.K.V.K.K.K",
+            "BANKA KARTLARI VE KREDİ KARTLARI KANUNU MADDE 5464",
+            "5464 Sayılı BKVKKK",
+            "5464 Sayılı Banka Kartları ve Kredi Kartları Kanunu",
+            "5464 Sayılı BKVKKK'nın",
+            "5464 Sayılı BKVKKK'nun",
+            "5464 Sayılı Banka Kartları ve Kredi Kartları Kanunu'nun",
+            "5464 Sayılı BKVKKK'nın",
+            "5464 Sayılı BKVKKK'nun",
+            "5464 Sayılı Banka Kartları ve Kredi Kartları Kanunu'nun",
+            "5464 Sayılı BKVKKK'nın"
+        ]
     }
 ]

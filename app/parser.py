@@ -18,22 +18,22 @@ class Parser:
     def __init__(self, path: str):
         # check if the file exists
         self.path = path
-        if not os.path.exists(self.path):
-            raise ValueError("Dosya bulunamadı.")
-        
-        # check if the file is a zip file
-        if not zipfile.is_zipfile(self.path):
-            raise ValueError("Geçersiz dosya biçimi.")
+        if path != "default":
+            if not os.path.exists(self.path):
+                raise ValueError("Dosya bulunamadı.")
+            
+            # check if the file is a zip file
+            if not zipfile.is_zipfile(self.path):
+                raise ValueError("Geçersiz dosya biçimi.")
 
         
-        # read the json/anahtarlar.json
-        self.anahtarlar = json.load(open("app/json/anahtarlar.json", "r", encoding="utf-8"))
+            # read the json/anahtarlar.json
+            self.anahtarlar = json.load(open("app/json/anahtarlar.json", "r", encoding="utf-8"))
 
-        # read json/anahtar_info.json
-        self.anahtar_info = json.load(open("app/json/anahtar_info.json", "r", encoding="utf-8"))
-
-        self.content = self.read()
-        self.data = self.parse()
+            # read json/anahtar_info.json
+            self.anahtar_info = json.load(open("app/json/anahtar_info.json", "r", encoding="utf-8"))
+            self.content = self.read()
+            self.data = self.parse()
 
     def read(self):
         udfFile = zipfile.ZipFile(self.path, 'r')
@@ -53,19 +53,20 @@ class Parser:
             content = re.sub(r'\s+', ' ', content)
             content = content.replace("~~", "\n")
             content = content.replace('"', "'")
+            content = content.replace("SORUŞTURMA EVRAKI", " ")
+            content = content.replace("Soruşturma Evrakı", " ")
+            content = content.replace("soruşturma evrakı", "")
             first_part = content
 
-            variatons = ["SORUŞTURMA", "Soruşturma", "soruşturma", "İNCELENDİ", "İncelendi"]
+            variatons = ["İNCELENDİ", "İncelendi", "incelendi"]
             for variation in variatons:
                 if variation in content:
                     first_part = content.split(variation)[0]
                     break
-           
             lastAnahtar = None
             lastFollowKey = None
             lastVariation = None
-            lastSüpheli = None
-            lastMusteki = None
+            lastSupheli = None
 
             follow_keys = ["MÜŞTEKİ", "ŞÜPHELİ", "MAĞDUR", "DAVACI", "MÜŞTEKİLER", "ŞÜPHELİLER", "MAĞDURLAR", "DAVACILAR"]
             
@@ -89,31 +90,67 @@ class Parser:
                 follow = False
 
                 if re.search(r"\b\d+-", line[0:5]):
-                    data = self.editLine(line, lastVariation)
-                    if len(data) > 0:
-                        if self.anahtarlar["ŞÜPHELİLER"] != [] and lastFollowKey == "ŞÜPHELİ":
-                            lastFollowKey = "ŞÜPHELİLER"
-                        if self.anahtarlar["MÜŞTEKİLER"] != [] and lastFollowKey == "MÜŞTEKİ":
-                            lastFollowKey = "MÜŞTEKİLER"
-                        if self.anahtarlar["MAĞDURLAR"] != [] and lastFollowKey == "MAĞDUR":
-                            lastFollowKey = "MAĞDURLAR"
-                        if self.anahtarlar["DAVACILAR"] != [] and lastFollowKey == "DAVACI":
-                            lastFollowKey = "DAVACILAR"
+                    try:
+                        data = self.editLine(line, lastVariation)
+                        if len(data) > 0:
+                            if self.anahtarlar["ŞÜPHELİLER"] != [] and lastFollowKey == "ŞÜPHELİ":
+                                lastFollowKey = "ŞÜPHELİLER"
+                            if self.anahtarlar["MÜŞTEKİLER"] != [] and lastFollowKey == "MÜŞTEKİ":
+                                lastFollowKey = "MÜŞTEKİLER"
+                            if self.anahtarlar["MAĞDURLAR"] != [] and lastFollowKey == "MAĞDUR":
+                                lastFollowKey = "MAĞDURLAR"
+                            if self.anahtarlar["DAVACILAR"] != [] and lastFollowKey == "DAVACI":
+                                lastFollowKey = "DAVACILAR"
 
-                        if lastFollowKey == "ŞÜPHELİ" or lastFollowKey == "ŞÜPHELİLER":
-                            lastSupheli = data
-                            sahis = self.sahis(data)
-                            data = {"hash": self.get_hash(lastSupheli), "data": data, "ad": sahis["ad"], "soyad": sahis["soyad"], "tamAdi":sahis["tamAdi"], "dogumTarihi": sahis["dogumTarihi"]["timestamp"], "anneAdi": sahis["anneAdi"], "babaAdi": sahis["babaAdi"], "isPerson":sahis["isPerson"]}
+                            sanik_keys = [
+                                "ŞÜPHELİ", "ŞÜPHELİLER", "S.S.ÇOCUK", 
+                                "S.S.ÇOCUKLAR", "SUÇA SÜRÜKLENEN ÇOCUKLAR", "SUÇA SÜRÜKLENEN ÇOCUK",
+                                "SSÇ", "SSÇLER", "SSÇ'LER"
+                            ]
 
-                        if lastFollowKey in sequential_keys:
-                            self.anahtarlar[lastFollowKey][self.get_hash(lastSupheli)] = data
-                        else:
-                            self.anahtarlar[lastFollowKey].append(data)
-                    continue
+                            sahis_keys = [
+                                "MÜŞTEKİ", "MÜŞTEKİLER", "DAVACI", "DAVACILAR", "MAĞDUR", "MAĞDURLAR"
+                            ]
+
+                            if lastFollowKey in sanik_keys:
+                                try:
+                                    lastSupheli = data
+                                    sahis = self.sahis(data)
+                                    data = {"id": self.get_hash(lastSupheli), "data": data, "ad": sahis["ad"], "soyad": sahis["soyad"], "tamAdi":sahis["tamAdi"], "dogumTarihi": sahis["dogumTarihi"], "anneAdi": sahis["anneAdi"], "babaAdi": sahis["babaAdi"], "isPerson":sahis["isPerson"]}
+                                except Exception as e:
+                                    print("Hata:", str(e))
+                                    pass
+                            if lastFollowKey in sahis_keys:
+                                try:
+                                    sahis = self.sahis(data)
+                                    data = {"id": self.get_hash(data), "data": data, "ad": sahis["ad"], "soyad": sahis["soyad"], "tamAdi":sahis["tamAdi"], "dogumTarihi": sahis["dogumTarihi"], "anneAdi": sahis["anneAdi"], "babaAdi": sahis["babaAdi"], "isPerson":sahis["isPerson"]}
+                                except Exception as e:
+                                    print("Hata:", str(e))
+                                    pass
+                            if lastFollowKey == "SEVK MADDESİ" or lastFollowKey == "SEVK MADDELERİ":
+                                maddeler = self.madde_bul(data)
+                                if len(maddeler) > 0:
+                                    data = maddeler
+
+                            if "TARİH" in lastFollowKey:
+                                tarih = self.tarih_bul([data])
+                                if tarih["datetime"] is not None:
+                                    rawData = data
+                                    tarih["data"] = rawData
+                                    data = tarih
+
+                            if lastFollowKey in sequential_keys:
+                                self.anahtarlar[lastFollowKey][self.get_hash(lastSupheli)] = data
+                            else:
+                                self.anahtarlar[lastFollowKey].append(data)
+                        continue
+                    except:
+                        continue
 
                 # fix
                 for anahtar in self.anahtarlar:
-                    if anahtar in line:
+                    # "in" expression replaced with re.search to match whole words
+                    if re.search(r'\b' + re.escape(anahtar) + r'\b', line):
                         lastAnahtar = anahtar
                         isInList = True
                         variations = [anahtar + " : ", anahtar + ": ", anahtar + " :"]
@@ -138,13 +175,50 @@ class Parser:
                                 if self.anahtarlar["DAVACILAR"] != [] and anahtar == "DAVACI":
                                     anahtar = "DAVACILAR"
 
-                                if lastAnahtar == "ŞÜPHELİ" or lastAnahtar == "ŞÜPHELİLER":
-                                    lastSupheli = data
-                                    sahis = self.sahis(data)
-                                    data = {"hash": self.get_hash(lastSupheli), "data": data, "ad": sahis["ad"], "soyad": sahis["soyad"], "tamAdi":sahis["tamAdi"], "dogumTarihi": sahis["dogumTarihi"]["timestamp"], "anneAdi": sahis["anneAdi"], "babaAdi": sahis["babaAdi"], "isPerson":sahis["isPerson"]}
+                                sanik_keys = [
+                                    "ŞÜPHELİ", "ŞÜPHELİLER", "S.S.ÇOCUK", 
+                                    "S.S.ÇOCUKLAR", "SUÇA SÜRÜKLENEN ÇOCUKLAR", "SUÇA SÜRÜKLENEN ÇOCUK",
+                                    "SSÇ", "SSÇLER", "SSÇ'LER"
+                                ]
 
+                                sahis_keys = [
+                                    "MÜŞTEKİ", "MÜŞTEKİLER", "DAVACI", "DAVACILAR", "MAĞDUR", "MAĞDURLAR"
+                                ]
+
+                                if lastAnahtar in sanik_keys:
+                                    try:
+                                        lastAnahtar = "ŞÜPHELİLER"
+                                        lastSupheli = data
+                                        sahis = self.sahis(data)
+                                        data = {"id": self.get_hash(lastSupheli), "data": data, "ad": sahis["ad"], "soyad": sahis["soyad"], "tamAdi":sahis["tamAdi"], "dogumTarihi": sahis["dogumTarihi"], "anneAdi": sahis["anneAdi"], "babaAdi": sahis["babaAdi"], "isPerson":sahis["isPerson"]}
+                                    except Exception as e:
+                                        print("Hata:", str(e))
+                                        pass
+                                if lastAnahtar in sahis_keys:
+                                    try:
+                                        lastAnahtar = "MÜŞTEKİLER"
+                                        sahis = self.sahis(data)
+                                        data = {"id": self.get_hash(data), "data": data, "ad": sahis["ad"], "soyad": sahis["soyad"], "tamAdi":sahis["tamAdi"], "dogumTarihi": sahis["dogumTarihi"], "anneAdi": sahis["anneAdi"], "babaAdi": sahis["babaAdi"], "isPerson":sahis["isPerson"]}
+                                    except Exception as e:
+                                        print("Hata:", str(e))
+                                        pass
+                                if lastAnahtar == "SEVK MADDESİ" or lastAnahtar == "SEVK MADDELERİ":
+                                    maddeler = self.madde_bul(data)
+                                    if len(maddeler) > 0:
+                                        data = maddeler
+
+                                if "TARİH" in lastAnahtar :
+                                    tarih = self.tarih_bul([data])
+                                    if tarih["datetime"] is not None:
+                                        rawData = data
+                                        tarih["data"] = rawData
+                                        data = tarih
+                                
                                 if anahtar in sequential_keys:
-                                    self.anahtarlar[anahtar][self.get_hash(lastSupheli)] = data
+                                    try:
+                                        self.anahtarlar[anahtar][self.get_hash(lastSupheli)] = data
+                                    except:
+                                        continue
                                 else:
                                     self.anahtarlar[anahtar].append(data)
 
@@ -160,30 +234,114 @@ class Parser:
                         if self.anahtarlar["DAVACILAR"] != [] and lastAnahtar == "DAVACI":
                             lastAnahtar = "DAVACILAR"
 
-                        if lastAnahtar == "ŞÜPHELİ" or lastAnahtar == "ŞÜPHELİLER":
-                            lastSupheli = data
-                            sahis = self.sahis(data)
-                            data = {"hash": self.get_hash(lastSupheli), "data": data, "ad": sahis["ad"], "soyad": sahis["soyad"], "tamAdi":sahis["tamAdi"], "dogumTarihi": sahis["dogumTarihi"]["timestamp"], "anneAdi": sahis["anneAdi"], "babaAdi": sahis["babaAdi"], "isPerson":sahis["isPerson"]}
+                        sanik_keys = [
+                            "ŞÜPHELİ", "ŞÜPHELİLER", "S.S.ÇOCUK", 
+                            "S.S.ÇOCUKLAR", "SUÇA SÜRÜKLENEN ÇOCUKLAR", "SUÇA SÜRÜKLENEN ÇOCUK",
+                            "SSÇ", "SSÇLER", "SSÇ'LER"
+                        ]
+
+                        sahis_keys = [
+                            "MÜŞTEKİ", "MÜŞTEKİLER", "DAVACI", "DAVACILAR", "MAĞDUR", "MAĞDURLAR"
+                        ]
+
+                        if lastAnahtar in sanik_keys:
+                            try:
+                                lastAnahtar = "ŞÜPHELİLER"
+                                lastSupheli = data
+                                sahis = self.sahis(data)
+                                data = {"id": self.get_hash(lastSupheli), "data": data, "ad": sahis["ad"], "soyad": sahis["soyad"], "tamAdi":sahis["tamAdi"], "dogumTarihi": sahis["dogumTarihi"], "anneAdi": sahis["anneAdi"], "babaAdi": sahis["babaAdi"], "isPerson":sahis["isPerson"]}
+                            except Exception as e:
+                                print("Hata:", str(e))
+                                pass
+                        if lastAnahtar in sahis_keys:
+                            try:
+                                lastAnahtar = "MÜŞTEKİLER"
+                                sahis = self.sahis(data)
+                                data = {"id": self.get_hash(data), "data": data, "ad": sahis["ad"], "soyad": sahis["soyad"], "tamAdi":sahis["tamAdi"], "dogumTarihi": sahis["dogumTarihi"], "anneAdi": sahis["anneAdi"], "babaAdi": sahis["babaAdi"], "isPerson":sahis["isPerson"]}
+                            except Exception as e:
+                                print("Hata:", str(e))
+                                pass
+                        if lastAnahtar == "SEVK MADDESİ" or lastAnahtar == "SEVK MADDELERİ":
+                            maddeler = self.madde_bul(data)
+                            if len(maddeler) > 0:
+                                data = maddeler
+
+                        if "TARİH" in lastAnahtar:
+                            tarih = self.tarih_bul([data])
+                            if tarih["datetime"] is not None:
+                                rawData = data
+                                tarih["data"] = rawData
+                                data = tarih
 
                         if lastAnahtar in sequential_keys:
                             self.anahtarlar[lastAnahtar][self.get_hash(lastSupheli)] = data
                         else:
-                            self.anahtarlar[lastAnahtar].append(data)
-     
+                            self.anahtarlar[lastAnahtar].append(data)    
             return content
         except:
             raise ValueError("Iddianame içeriğini okurken bir hata oluştu. Lütfen dosyanın içeriğini kontrol edin.")
 
+    def madde_bul(self, content: str):
+        content = self.metin_arindir(content)
+        madde_regex = r"\d{2,3}(?:[\/\-]\d{1,2}(?:\.[a-zA-Z])?)?(?:\-[a-zA-Z])?|\d{2,3}$"
+        maddeler = re.findall(madde_regex, content)
+        return maddeler
+
+    def metin_arindir(self, text):
+        # Tarih desenlerini tanımla
+        tarih_desenleri = [
+            r"\b\d{1,2}[./-]\d{1,2}[./-]\d{4}\b",  # gg.aa.yyyy veya gg-aa-yyyy veya yyyy.aa.gg
+            r"\b\d{4}[./-]\d{1,2}[./-]\d{1,2}\b",  # yyyy.aa.gg veya yyyy-aa-gg veya gg.aa.yyyy
+            r"\b\d{1,2}[./-]\d{4}[./-]\d{1,2}\b",   # gg.yyyy.aa veya gg-yyyy-aa veya aa.yyyy.gg
+            r"\d{4}",
+        ]
+
+        once_sil = [
+            "TL",
+            "USD",
+            "EURO",
+            "TURK LIRASI",
+            "TÜRK LİRASI",
+            "YTL",
+            "YENİ TÜRK LİRASI",
+            "YENİ TURK LIRASI",
+        ]
+
+        for param in once_sil:
+            param_location = text.find(param)
+            # parametreden bir önceki kelimeyi bul
+            if param_location != -1:
+                onceki_kelime = text[:param_location].split(" ")[-2]
+                text = text.replace(onceki_kelime, "")
+
+        # Her deseni arayıp bul ve tarihleri sil
+        for desen in tarih_desenleri:
+            text = re.sub(desen, "", text)
+
+        return text
+
+    def convert_date_to_unix_timestamp(self, year, month, day):
+        given_date = datetime.datetime(year, month, day)
         
+        start_date = datetime.datetime(1970, 1, 1)
+        time_difference = given_date - start_date
+        
+        unix_timestamp = time_difference.total_seconds()
+        
+        return int(unix_timestamp)
+
     def tarih_bul(self, content: list):
         formats = {
-            "dd.mm.yyyy": {"pattern": r'\d{2}.\d{2}.\d{4}', "min_year": None, "max_year": None},
-            "dd/mm/yyyy": {"pattern": r'\d{2}/\d{2}/\d{4}', "min_year": None, "max_year": None},
-            "dd-mm-yyyy": {"pattern": r'\d{2}-\d{2}-\d{4}', "min_year": None, "max_year": None},
-            "yyyy.mm.dd": {"pattern": r'\d{4}.\d{2}.\d{2}', "min_year": None, "max_year": None},
-            "yyyy/mm/dd": {"pattern": r'\d{4}/\d{2}/\d{2}', "min_year": None, "max_year": None},
-            "yyyy-mm-dd": {"pattern": r'\d{4}-\d{2}-\d{2}', "min_year": None, "max_year": None},
-            "yyyy": {"pattern": r'\d{4}', "min_year": 1923, "max_year": datetime.datetime.now().year},
+            "dd.mm.yyyy": {"pattern": r'\d{2}.\d{2}.\d{4}', "min_year": None, "max_year": None, "format_type": "dd.mm.yyyy"},
+            "dd/mm/yyyy": {"pattern": r'\d{2}\/\d{2}\/\d{4}', "min_year": None, "max_year": None, "format_type": "dd/mm/yyyy"},
+            "dd-mm-yyyy": {"pattern": r'\d{2}-\d{2}-\d{4}', "min_year": None, "max_year": None, "format_type": "dd-mm-yyyy"},
+            "yyyy.mm.dd": {"pattern": r'\d{4}.\d{2}.\d{2}', "min_year": None, "max_year": None, "format_type": "yyyy.mm.dd"},
+            "yyyy/mm/dd": {"pattern": r'\d{4}\/\d{2}\/\d{2}', "min_year": None, "max_year": None, "format_type": "yyyy/mm/dd"},
+            "yyyy-mm-dd": {"pattern": r'\d{4}-/d{2}-/d{2}', "min_year": None, "max_year": None, "format_type": "yyyy-mm-dd"},
+            "yyyy": {"pattern": r'\d{4}', "min_year": 1923, "max_year": datetime.datetime.now().year, "format_type": "yyyy"},
+            "mm-yyyy": {"pattern": r'\d{2}-\d{4}', "min_year": 1923, "max_year": datetime.datetime.now().year, "format_type": "mm-yyyy"},
+            "mm.yyyy": {"pattern": r'\d{2}.\d{4}', "min_year": 1923, "max_year": datetime.datetime.now().year, "format_type": "mm.yyyy"},
+            "mm/yyyy": {"pattern": r'\d{2}/\d{4}', "min_year": 1923, "max_year": datetime.datetime.now().year, "format_type": "mm/yyyy"},
         }
 
         if len(content) == 0:
@@ -210,39 +368,63 @@ class Parser:
                     date = date.replace("-", "")
                 
                 isEdited = False
-
                 if re.match(pattern, date):
                     date = date.split(" ")[0]
                     date = date.replace(".", "/").replace("-", "/")
                     date = date.split("/")
 
+                    if len(date[0]) == 2 and len(date[1]) == 4 and date[2] == '':
+                        isEdited = True
+                        date = ['1', date[0], date[1]]
+
                     if len(date) != 3 and len(date[0]) == 4:
                         isEdited = True
-                        date = [1, 1, date[0]]
+                        date = ['1', '1', date[0]]
+                    
+                    if len(date) == 2:
+                        date = ['1', date[0], date[1]]
+                        isEdited = True
 
-                    day = int(date[0]) if int(date[0]) < 32 else 1;isEdited = True
-                    month = int(date[1]) if int(date[1]) < 13 else 1;isEdited = True
-                    year = int(date[2]) if int(date[2]) > 1923 and int(date[2]) < datetime.datetime.now().year else 9999
+                    current_year = datetime.datetime.now().year
+                    day = int(date[0])
+                    month = int(date[1])
+                    year = int(date[2])
+
+                    if day < 1 or day > 31:
+                        day = 1
+                    
+                    if month < 1 or month > 12:
+                        month = 1
+
+                    if year < 1923 or year > current_year:
+                        if len(str(year)) > 4:
+                            year = str(year)[:4]
+                            year = int(year)
+                        else:
+                            year = 2038
 
                     if min_year is not None and max_year is not None:
                         if year >= min_year and year <= max_year:
                             date = datetime.datetime(year, month, day)
                             try:
-                                int_timestamp_11 = int(time.mktime(date.timetuple()))
+                                int_timestamp_11 = self.convert_date_to_unix_timestamp(year, month, day)
                             except:
                                 int_timestamp_11 = None
-                            return {"datetime": date, "timestamp": int_timestamp_11, "format": format, "isEdited": isEdited}
+                            return {"datetime": date, "timestamp": int_timestamp_11, "format": formats[format]["format_type"], "isEdited": isEdited}
                         else:
-                            return {"datetime": None, "timestamp": None, "format": format, "isEdited": isEdited}
+                            return {"datetime": None, "timestamp": None, "format":  formats[format]["format_type"], "isEdited": isEdited}
                     else:
                         date = datetime.datetime(year, month, day)
                         try:
-                            int_timestamp_11 = int(time.mktime(date.timetuple()))
-                        except:
+                            int_timestamp_11 = self.convert_date_to_unix_timestamp(year, month, day)
+                        except Exception as e:
+                            print(f"[{date}] Timestamp Hatası:", str(e))
                             int_timestamp_11 = None
-                        return {"datetime": date, "timestamp": int_timestamp_11, "format": format, "isEdited": isEdited}
+                        return {"datetime": date, "timestamp": int_timestamp_11, "format":  formats[format]["format_type"], "isEdited": isEdited}
                 else:
                     continue
+
+        return {"datetime": None, "timestamp": None, "format": None, "isEdited": False}
 
     def string_temizle(self, string):
         for index, harf in enumerate(string):
@@ -275,7 +457,41 @@ class Parser:
         supheliler = False
         davacilar = False
 
-        if len(self.anahtarlar["MÜŞTEKİLER"]) > 0:
+        anahtarlar = self.anahtarlar.copy()
+
+        if len(self.anahtarlar["MÜŞTEKİ"]) > 0:
+            mustekiler = True
+            if len(self.anahtarlar["MÜŞTEKİLER"]) == 0:
+                anahtarlar["MÜŞTEKİLER"] = (self.anahtarlar["MÜŞTEKİ"])
+            else:
+                anahtarlar["MÜŞTEKİLER"].append(self.anahtarlar["MÜŞTEKİ"])
+            anahtarlar.pop("MÜŞTEKİ")
+
+        if len(self.anahtarlar["ŞÜPHELİ"]) > 0:
+            supheliler = True
+            if len(self.anahtarlar["ŞÜPHELİLER"]) == 0:
+                anahtarlar["ŞÜPHELİLER"] = (self.anahtarlar["ŞÜPHELİ"])
+            else:
+                anahtarlar["ŞÜPHELİLER"].append(self.anahtarlar["ŞÜPHELİ"])
+            anahtarlar.pop("ŞÜPHELİ")
+        
+        if len(self.anahtarlar["MAĞDUR"]) > 0:
+            magdurlar = True
+            if len(self.anahtarlar["MAĞDURLAR"]) == 0:
+                anahtarlar["MAĞDURLAR"] = (self.anahtarlar["MAĞDUR"])
+            else:
+                anahtarlar["MAĞDURLAR"].append(self.anahtarlar["MAĞDUR"])
+            anahtarlar.pop("MAĞDUR")
+        
+        if len(self.anahtarlar["DAVACI"]) > 0:
+            davacilar = True
+            if len(self.anahtarlar["DAVACILAR"]) == 0:
+                anahtarlar["DAVACILAR"] = (self.anahtarlar["DAVACI"])
+            else:
+                anahtarlar["DAVACILAR"].append(self.anahtarlar["DAVACI"])
+            anahtarlar.pop("DAVACI")
+
+        if len(self.anahtarlar["MÜŞTEKİLER"]) > 1:
             mustekiler = True
         
         if len(self.anahtarlar["ŞÜPHELİ"]) > 1:
@@ -287,27 +503,35 @@ class Parser:
         if len(self.anahtarlar["DAVACI"]) > 1:
             davacilar = True
 
-        anahtarlar = self.anahtarlar.copy()
-        
         for anahtar in list(anahtarlar.keys()):
-            if anahtarlar[anahtar] == []:
+            if anahtarlar[anahtar] == [] or anahtarlar[anahtar] == {} or anahtarlar[anahtar] == "[]" or anahtarlar[anahtar] == "":
                 anahtarlar.pop(anahtar)
         
         self.anahtarlar = anahtarlar
         return {"mustekiler": mustekiler, "magdurlar": magdurlar, "supheliler": supheliler, "davacilar": davacilar}
 
-    def get_hash(self, content: str):
-        sahis = self.sahis(content)
-        sha1 = hashlib.sha1()
-        sha1.update(sahis["tamAdi"].encode("utf-8"))
-        sha1.update(str(sahis["dogumTarihi"]["datetime"]).encode("utf-8"))
-        sha1.update(str(sahis["isPerson"]).encode("utf-8"))
-        return sha1.hexdigest()
+    def create_hash(self, content):
+        content_str = str(content)
+        hash_value = 0
+        for char in content_str:
+            hash_value = (hash_value * 31 + ord(char)) % (2**32)
+        
+        return hash_value
 
+    def get_hash(self, content: str):
+        try:
+            sahis = self.sahis(content)
+            hash = self.create_hash(f"{sahis['tamAdi'], sahis['dogumTarihi']['datetime'], sahis['isPerson']}")
+        except:
+            hash = 0
+        return int(hash)
 
     def sahis(self, content: str):
-        content = re.sub(r"\b\d+-", "", content)
-        content = self.string_temizle(content)
+        try:
+            content = re.sub(r"\b\d+-", "", content)
+            content = self.string_temizle(content)
+        except:
+            pass
 
         person_keys = ["oğlu", "Oğlu", "OĞLU", "kızı", "Kızı", "KIZI"]
         isPerson = False
@@ -315,14 +539,18 @@ class Parser:
             if anahtar in content:
                 isPerson = True
                 break
-            
-        tam_adi = content.split(",")[0]
+        
+        tam_adi = None  
+        try:
+            tam_adi = content.split(",")[0]
+        except:
+            pass
         ad = None
         soyad = None
         anne_adi = None
         baba_adi = None
         adres = None
-        dogum_tarihi = None
+        dogum_tarihi = {"datetime": None, "timestamp": None, "format": None, "isEdited": False}
 
         if isPerson:
             anneKeys = ["'den Olma", "'den olma", "'DEN OLMA", "'DEN OLMA", "'dan Olma", "'dan olma", "'DAN OLMA", "'DAN OLMA"]
@@ -336,7 +564,10 @@ class Parser:
             ad, soyad = tam_adi.split(" ")[0], tam_adi.split(" ")[1]
 
         else:
-            adres = content.replace(tam_adi, "").strip()[1:]
+            try:
+                adres = content.replace(tam_adi, "").strip()[1:]
+            except:
+                pass
 
         return {
             "ad": ad,

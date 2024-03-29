@@ -13,20 +13,16 @@ router = APIRouter(
     tags=["udf"],
     responses={404: {"description": "Not found"}},
 )
-@router.post("/upload")
-async def upload_udf(file: UploadFile = File(...)):
-    if file.filename.split(".")[-1] != "udf":
-        return {"error": "File type not supported."}
-    if file.size > 4194304:
-        return {"error": "File size too large."}
-    if file.content_type != "application/octet-stream":
-        return {"error": "File type not supported."}
+@router.get("/upload")
+async def upload_udf(filepath: str):
+    file = open(filepath, "rb")
+    file = file.read()
     
     if not os.path.exists("uploads/udf"):
         os.makedirs("uploads/udf")
     
     # create hash for file if it already exists prevent reupload
-    content = file.file.read()
+    content = file
     hash = hashlib.sha256(content).hexdigest()
     if os.path.exists(f"uploads/udf/{hash}"):
          return {"fileId": hash}
@@ -37,19 +33,15 @@ async def upload_udf(file: UploadFile = File(...)):
 
 @router.get("/parse")
 async def parse_udf(fileId: str):
-    parser = Parser(f"uploads/udf/{fileId}")
-    multi_keys = parser.clean_anahtarlar()
-    anahtarlar = parser.anahtarlar
+    try:
+        parser = Parser(f"uploads/udf/{fileId}")
+        multi_keys = parser.clean_anahtarlar()
+        anahtarlar = parser.anahtarlar
 
-    if multi_keys["mustekiler"]:
-        mustekiler = []
-        for musteki in anahtarlar["MÜŞTEKİLER"]:
-            parser.sahis(musteki)
-    else:
-        parser.sahis(anahtarlar["MÜŞTEKİ"][0])
-
-    return parser.anahtarlar
-
+        return parser.anahtarlar
+    except Exception as e:
+        # set status code to 400
+        raise HTTPException(status_code=400, detail=str(e))
 @router.get("/ping")
 async def ping():
     return {"ping": "pong"}
